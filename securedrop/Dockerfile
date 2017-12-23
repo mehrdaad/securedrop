@@ -2,7 +2,7 @@
 FROM ubuntu@sha256:084989eb923bd86dbf7e706d464cf3587274a826b484f75b69468c19f8ae354c
 
 RUN apt-get update && \
-    apt-get install -y python-pip python-yaml libpython2.7-dev libssl-dev secure-delete \
+    apt-get install -y python-pip libpython2.7-dev libssl-dev secure-delete \
                        gnupg2 ruby redis-server firefox git xvfb haveged curl \
                        gettext paxctl x11vnc enchant
 
