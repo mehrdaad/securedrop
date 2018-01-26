@@ -1,16 +1,23 @@
 # -*- coding: utf-8 -*-
+
+import gnupg
+import logging
 import os
+import psutil
+import pytest
 import shutil
 import signal
 import subprocess
-import logging
 
-import gnupg
-import psutil
-import pytest
+from backports.tempfile import TemporaryDirectory
+from os import path
 
 os.environ['SECUREDROP_ENV'] = 'test'  # noqa
-import config
+import config as original_config
+
+from db import db
+from source_app import create_app as create_source_app
+
 
 # TODO: the PID file for the redis worker is hard-coded below.
 # Ideally this constant would be provided by a test harness.
@@ -44,11 +51,37 @@ def pytest_collection_modifyitems(config, items):
 
 
 @pytest.fixture(scope='session')
-def setUptearDown():
-    _start_test_rqworker(config)
+def setUpTearDown():
+    _start_test_rqworker(original_config)
     yield
     _stop_test_rqworker()
-    _cleanup_test_securedrop_dataroot(config)
+    _cleanup_test_securedrop_dataroot(original_config)
+
+
+@pytest.fixture(scope='function')
+def tmp_dir():
+    with TemporaryDirectory as d:
+        for sub in ['keys', 'store', 'tmp']:
+            full_path = path.join(d, sub)
+            if not path.exists(full_path):
+                os.mkdir(full_path)
+        yield d
+
+
+@pytest.fixture(scope='function')
+def config(tmp_dir):
+    c = original_config.copy()
+    c.SECUREDROP_DATA_ROOT = tmp_dir
+    return c
+
+
+@pytest.fixture(scope='function')
+def source_app(config):
+    app = create_source_app(config)
+    with app.app_context():
+        db.create_all()
+
+    return app
 
 
 def _start_test_rqworker(config):

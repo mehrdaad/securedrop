@@ -1,3 +1,4 @@
+backports.tempfile
 beautifulsoup4
 blinker
 Flask-Testing
